@@ -342,7 +342,7 @@ public class Player {
                                 musicStop = false;
                                 currentFrame = 0;
                                 window.resetMiniPlayer();
-                                threadPlayMusic.stop();
+                                threadPlayMusic.stop(); //Talvez tenha bugs nesse top... :(
 
 
                             }
