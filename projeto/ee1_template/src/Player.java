@@ -16,8 +16,10 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+
 
 public class Player {
 
@@ -54,6 +56,10 @@ public class Player {
     private boolean musicPrevious = false;
     private int novoFrame;
     private boolean musicStop = false;
+    private boolean verificarRepeat = false;
+    private boolean verificarNext = false;
+    private ArrayList<Song> songToPlayAuxiliar = new ArrayList<>();
+    private  boolean verificarShuffle = false;
 
 
     public Player() {
@@ -84,11 +90,16 @@ public class Player {
             if (shuffle) {
                 pause();
             }
+
         };
         ActionListener buttonListenerRepeat = e -> {
             repeat = !repeat;
             if (repeat) {
-                pause();
+                musicRepeat();
+            } else{
+                repeat = false;
+                verificarRepeat = false;
+                verificarNext = false;
             }
         };
 
@@ -239,7 +250,7 @@ public class Player {
                     lock.lock();
                     Song newSong = window.getNewSong();
 
-                    boolean musicaExiste = false;
+                    boolean musicaExiste = false;  //Booleano para evitar que uma música que já está na lista, não seja adicionada novamente
                     for (int i = 0; i < songToPlay.size(); i++) {
                         if (newSong.getFilePath().equals(songToPlay.get(i).getFilePath())) {
                             musicaExiste = true;
@@ -249,6 +260,7 @@ public class Player {
                     if (!musicaExiste) songToPlay.add(newSong);
 
                     window.updateQueueList(getDisplayInfo());
+
 
 
                 } catch (IOException | BitstreamException | UnsupportedTagException | InvalidDataException dq) {
@@ -276,7 +288,7 @@ public class Player {
                             if (indiceMusicaAtual == i) {
                                 indiceMusicaAtual -= 1;
                                 next();
-                                if (indiceMusicaAtual == songToPlay.size() - 1){
+                                if (indiceMusicaAtual == songToPlay.size() - 1){ //Impedir que ele pule um indice assim que uma música é removida
                                     stop();
                                 }
                             }
@@ -316,12 +328,12 @@ public class Player {
                 window.setEnabledStopButton(true);
                 window.setEnabledScrubber(true);
                 while (indiceMusicaAtual < songToPlay.size()){
-                    if (indiceMusicaAtual == songToPlay.size() - 1){
+                    if (indiceMusicaAtual == songToPlay.size() - 1){ //Verificando se a música atual é a ultima da lista para desabilitar o botão de next
                         window.setEnabledNextButton(false);
                     } else{
                         window.setEnabledNextButton(true);
                     }
-                    if (indiceMusicaAtual == 0){
+                    if (indiceMusicaAtual == 0){ //Verificando se a música atual é a primeira para desabilitar o botão de Previous
                         window.setEnabledPreviousButton(false);
                     } else{
                         window.setEnabledPreviousButton(true);
@@ -333,7 +345,10 @@ public class Player {
                     playerPaused = false;
                     currentFrame = 0;
 
-
+//                    if (musicStop){
+//                        musicStop = false;
+//                        threadPlayMusic.interrupt();
+//                    }
                     boolean verificarIncrementacao = true;
                     while (playNextFrame()) {
                         lockPlayPause.lock();
@@ -342,7 +357,7 @@ public class Player {
                                 musicStop = false;
                                 currentFrame = 0;
                                 window.resetMiniPlayer();
-                                threadPlayMusic.stop(); //Talvez tenha bugs nesse top... :(
+                                threadPlayMusic.stop();
 
 
                             }
@@ -368,12 +383,18 @@ public class Player {
                         }
                     }
                     currentFrame = 0;
-
-                    if(verificarIncrementacao){
-                        indiceMusicaAtual++;
+                    if (verificarNext && indiceMusicaAtual == songToPlay.size() - 1){
+                        indiceMusicaAtual = 0;
+                        verificarNext = false;
                     } else{
-                        indiceMusicaAtual--;
+                        if(verificarIncrementacao){
+                            indiceMusicaAtual++;
+                        } else{
+                            indiceMusicaAtual--;
+                        }
                     }
+
+
                 }
                 window.resetMiniPlayer();
             } catch (JavaLayerException | FileNotFoundException e) {
@@ -448,6 +469,13 @@ public class Player {
     public void previous() {
         musicPrevious = true;
     }
+
+    public void musicRepeat() {
+        verificarRepeat = true;
+        verificarNext = true;
+    }
+
+
     //</editor-fold>
 
     //<editor-fold desc="Getters and Setters">
